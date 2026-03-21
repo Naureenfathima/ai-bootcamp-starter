@@ -1,0 +1,77 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# .github/workflows/ci.yml — Continuous Integration Pipeline
+#
+# Runs on every push to main and every pull request.
+# Checks: lint → tests → docker build
+#
+# STUDENT TODO:
+#   - Add a deploy step that pushes to Railway/Render after tests pass.
+#   - Add a step that runs pytest with coverage and uploads the report.
+#   - Add a step that scans for secrets using truffleHog or gitleaks.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  # ── Test ────────────────────────────────────────────────────────────────────
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        env:
+          # Set dummy values so settings validation doesn't fail during tests
+          ANTHROPIC_API_KEY: "test_key"
+          EMBEDDING_PROVIDER: "local"
+          VECTOR_STORE: "memory"
+        run: pytest tests/ -v --tb=short
+
+  # ── Docker Build ────────────────────────────────────────────────────────────
+  docker:
+    name: Docker Build Check
+    runs-on: ubuntu-latest
+    needs: test   # only build if tests pass
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t ai-bootcamp-starter:ci .
+
+  # ── Deploy (STUDENT TODO) ───────────────────────────────────────────────────
+  # Uncomment and configure this block once you have a Railway or Render account.
+  #
+  # deploy:
+  #   name: Deploy to Production
+  #   runs-on: ubuntu-latest
+  #   needs: [test, docker]
+  #   if: github.ref == 'refs/heads/main'
+  #
+  #   steps:
+  #     - name: Deploy to Railway
+  #       env:
+  #         RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+  #       run: |
+  #         npm install -g @railway/cli
+  #         railway up --service ai-bootcamp-starter

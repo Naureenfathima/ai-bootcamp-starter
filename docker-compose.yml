@@ -1,0 +1,59 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# docker-compose.yml — Local development with PostgreSQL + pgvector
+#
+# Start:   docker compose up
+# Stop:    docker compose down
+# ─────────────────────────────────────────────────────────────────────────────
+
+version: "3.9"
+
+services:
+
+  # ── FastAPI App ─────────────────────────────────────────────────────────────
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # Override to use pgvector when running with docker compose
+      - VECTOR_STORE=pgvector
+      - DATABASE_URL=postgresql://bootcamp:bootcamp@db:5432/aibootcamp
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── PostgreSQL + pgvector ───────────────────────────────────────────────────
+  # STUDENT TODO: After starting docker compose, run the migration SQL:
+  #   docker compose exec db psql -U bootcamp -d aibootcamp -c "
+  #     CREATE EXTENSION IF NOT EXISTS vector;
+  #     CREATE TABLE IF NOT EXISTS embeddings (
+  #       id        SERIAL PRIMARY KEY,
+  #       source    TEXT,
+  #       chunk_idx INTEGER,
+  #       content   TEXT,
+  #       metadata  JSONB,
+  #       embedding vector(1536)
+  #     );
+  #     CREATE INDEX ON embeddings USING ivfflat (embedding vector_cosine_ops);
+  #   "
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: bootcamp
+      POSTGRES_PASSWORD: bootcamp
+      POSTGRES_DB: aibootcamp
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bootcamp -d aibootcamp"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

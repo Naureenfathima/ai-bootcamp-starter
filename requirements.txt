@@ -1,0 +1,30 @@
+# ── Core ──────────────────────────────────────────────────────────────────────
+fastapi==0.115.5
+uvicorn[standard]==0.32.0
+pydantic==2.9.2
+pydantic-settings==2.6.0
+python-multipart==0.0.17    # file uploads in FastAPI
+
+# ── AI / LLM ──────────────────────────────────────────────────────────────────
+anthropic==0.40.0
+
+# ── Embeddings (choose one) ───────────────────────────────────────────────────
+openai==1.57.0                  # for OpenAI embeddings
+sentence-transformers==3.3.1    # for local embeddings (no API needed)
+
+# ── Voice AI ──────────────────────────────────────────────────────────────────
+deepgram-sdk==3.7.5
+elevenlabs==1.9.0
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+python-dotenv==1.0.1
+httpx==0.27.2
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+pytest==8.3.3
+pytest-asyncio==0.24.0
+httpx==0.27.2   # for FastAPI TestClient
+
+# ── Optional: Vector DB (uncomment when you're ready for production) ──────────
+# psycopg2-binary==2.9.10   # PostgreSQL driver for pgvector
+# pgvector==0.3.5           # pgvector Python client
