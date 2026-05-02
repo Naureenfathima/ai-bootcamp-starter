@@ -74,8 +74,8 @@ class InMemoryVectorStore:
         Returns:
             Sorted list of SearchResult (highest score first).
         """
-        top_k     = top_k     or settings.retrieval_top_k
-        threshold = threshold or settings.similarity_threshold
+        top_k     = top_k     if top_k     is not None else settings.retrieval_top_k
+        threshold = threshold if threshold is not None else settings.similarity_threshold
 
         results: list[SearchResult] = []
         for chunk, embedding in self._store:

@@ -52,8 +52,8 @@ def chunk_text(
     Returns:
         List of Chunk objects.
     """
-    chunk_size    = chunk_size    or settings.chunk_size
-    chunk_overlap = chunk_overlap or settings.chunk_overlap
+    chunk_size    = chunk_size    if chunk_size    is not None else settings.chunk_size
+    chunk_overlap = chunk_overlap if chunk_overlap is not None else settings.chunk_overlap
 
     # Normalise whitespace
     text = re.sub(r"\s+", " ", text).strip()
