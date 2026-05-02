@@ -21,6 +21,8 @@ from app.api.health import router as health_router
 from app.api.rag import router as rag_router
 from app.api.agent import router as agent_router
 from app.api.voice import router as voice_router
+from app.api.anti_rag import router as anti_rag_router
+from app.api.harness import router as harness_router
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -45,8 +47,10 @@ app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     description=(
-        "Starter project for the BlockseBlock 30-Day AI Systems Engineering Bootcamp. "
-        "Includes RAG, Voice AI, and Agent APIs ready for you to build on."
+        "Starter project for the BlockseBlock AI Systems Engineering Bootcamp. "
+        "Covers RAG, Anti-RAG (CAG, KAG, Text-to-SQL, fine-tuning), "
+        "Voice AI, Autonomous Agents with memory, Evaluation Harness, "
+        "and Production patterns (caching, rate limiting, resilience, multi-tenancy)."
     ),
     lifespan=lifespan,
 )
@@ -85,6 +89,8 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(health_router)
-app.include_router(rag_router,   prefix="/rag",   tags=["RAG"])
-app.include_router(agent_router, prefix="/agent", tags=["Agent"])
-app.include_router(voice_router, prefix="/voice", tags=["Voice"])
+app.include_router(rag_router,       prefix="/rag",       tags=["RAG"])
+app.include_router(agent_router,     prefix="/agent",     tags=["Agent"])
+app.include_router(voice_router,     prefix="/voice",     tags=["Voice"])
+app.include_router(anti_rag_router,  prefix="/anti-rag",  tags=["Anti-RAG"])
+app.include_router(harness_router,   prefix="/harness",   tags=["Harness"])

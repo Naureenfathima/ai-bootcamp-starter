@@ -23,8 +23,19 @@ httpx==0.27.2
 # ── Testing ───────────────────────────────────────────────────────────────────
 pytest==8.3.3
 pytest-asyncio==0.24.0
-httpx==0.27.2   # for FastAPI TestClient
+# httpx listed above covers FastAPI TestClient too
 
-# ── Optional: Vector DB (uncomment when you're ready for production) ──────────
-# psycopg2-binary==2.9.10   # PostgreSQL driver for pgvector
-# pgvector==0.3.5           # pgvector Python client
+# ── Optional: Production persistence ─────────────────────────────────────────
+# Uncomment as you progress through the course:
+# redis==5.0.1                  # SemanticMemory / PersistentStore / RateLimiter
+# psycopg2-binary==2.9.10       # PostgreSQL driver for pgvector
+# pgvector==0.3.5               # pgvector Python client
+
+# ── Optional: Advanced fine-tuning ───────────────────────────────────────────
+# peft==0.13.2                  # HuggingFace PEFT / LoRA
+# transformers==4.47.0          # HuggingFace Transformers
+# datasets==3.2.0               # HuggingFace Datasets
+
+# ── Optional: Observability dashboards ───────────────────────────────────────
+# langfuse==2.57.3              # LLM observability (Langfuse)
+# langsmith==0.2.3              # LLM tracing (LangSmith)
