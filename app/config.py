@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     # Options: "openai" | "cohere" | "local"
     embedding_provider: str = "openai"
     openai_api_key: str = ""
+    openai_chat_model: str = "gpt-4o-mini"
     embedding_model: str = "text-embedding-3-small"
     embedding_dimensions: int = 1536
 
@@ -45,6 +46,27 @@ class Settings(BaseSettings):
     # ── Agent ─────────────────────────────────────────────────────────────────
     max_agent_steps: int = 10       # safety limit on tool-call loops
     agent_temperature: float = 0.2  # low = more deterministic
+
+    # ── Agentic RAG ───────────────────────────────────────────────────────────
+    agentic_max_iterations: int = 3         # max retrieve-reflect cycles per sub-question
+    agentic_reflection_threshold: float = 0.7  # score above which evidence is "sufficient"
+
+    # ── Page Index ────────────────────────────────────────────────────────────
+    page_index_page_size: int = 800         # words per logical page
+
+    # ── Voice AI ─────────────────────────────────────────────────────────────
+    voice_stt_confidence_threshold: float = 0.5  # below this, ask user to repeat
+
+    # ── LLM Provider (swap without changing code) ────────────────────────────
+    # Options: "anthropic" | "openai" | "ollama" | "groq" | "together" | "openrouter"
+    llm_provider: str = "anthropic"
+    llm_model: str = ""            # overrides default model for the chosen provider
+
+    # Provider-specific keys (only the one matching llm_provider is needed)
+    groq_api_key: str = ""
+    together_api_key: str = ""
+    openrouter_api_key: str = ""
+    ollama_base_url: str = "http://localhost:11434/v1"
 
     class Config:
         env_file = ".env"

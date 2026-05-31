@@ -169,6 +169,10 @@ class EpisodicMemory:
         self._messages = self._messages[n_to_drop:]
         logger.debug("EpisodicMemory: stub summarisation, dropped %d old messages", n_to_drop)
 
+    def as_messages(self) -> list[dict]:
+        """Return history in OpenAI/standard message format."""
+        return self.as_claude_messages()
+
     def as_claude_messages(self) -> list[dict]:
         """
         Return history in Claude API format, prepending any accumulated summary.

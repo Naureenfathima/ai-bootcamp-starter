@@ -23,6 +23,7 @@ from app.api.agent import router as agent_router
 from app.api.voice import router as voice_router
 from app.api.anti_rag import router as anti_rag_router
 from app.api.harness import router as harness_router
+from app.api.eval import router as eval_router
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -93,4 +94,5 @@ app.include_router(rag_router,       prefix="/rag",       tags=["RAG"])
 app.include_router(agent_router,     prefix="/agent",     tags=["Agent"])
 app.include_router(voice_router,     prefix="/voice",     tags=["Voice"])
 app.include_router(anti_rag_router,  prefix="/anti-rag",  tags=["Anti-RAG"])
-app.include_router(harness_router,   prefix="/harness",   tags=["Harness"])
+app.include_router(harness_router,   prefix="/harness",   tags=["Agent Harness"])
+app.include_router(eval_router,      prefix="/eval",      tags=["Evaluation"])

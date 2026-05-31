@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 mcp/server.py — Model Context Protocol (MCP) server stub.
 
@@ -20,7 +21,7 @@ import logging
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ class MCPResponse:
     """
     request_id: str
     result: Any = None
-    error: str | None = None
+    error:Optional[ str] = None
     latency_ms: float = 0.0
 
     @property

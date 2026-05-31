@@ -44,6 +44,17 @@ class Tool:
             "input_schema": self.input_schema,
         }
 
+    def as_openai_tool(self) -> dict:
+        """Return the tool definition in OpenAI function-calling format."""
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": self.input_schema,
+            },
+        }
+
     def execute(self, **kwargs) -> str:
         raise NotImplementedError
 

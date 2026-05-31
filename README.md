@@ -1,100 +1,101 @@
-# AI Bootcamp Starter 🚀
+# AI Bootcamp Starter
 
-> Starter project for the **BlockseBlock AI Systems Engineering Bootcamp**
-> Instructor: Naureen Fathima
+> **BlockseBlock AI Systems Engineering Bootcamp** — Instructor: Naureen Fathima
 
-This is your foundation. Every module of the course adds a layer to this project until you have a **deployed, production-grade AI product** with a public URL.
+Every module of the course adds a layer to this project until you have a deployed, production-grade AI system with a public URL.
 
 ---
 
-## What's Inside
+## Project Structure
 
 ```
-ai-bootcamp-starter/
-├── app/
-│   ├── main.py          # FastAPI entry point
-│   ├── config.py        # All settings (read from .env)
-│   ├── rag/             # Module 3 — RAG pipeline
-│   │   ├── ingestion.py   chunking & document loading
-│   │   ├── embeddings.py  embedding generation
-│   │   ├── retrieval.py   vector store & similarity search
-│   │   └── pipeline.py    end-to-end RAG (ingest + query)
-│   ├── anti_rag/        # Module 3 (extended) — Anti-RAG approaches
-│   │   ├── kag.py         Knowledge Augmented Generation (entity graphs)
-│   │   ├── structured_knowledge.py  Text-to-SQL for structured data
-│   │   ├── fine_tuning.py  LoRA/PEFT concepts + training data builder
-│   │   └── router.py      Hybrid router: pick the right strategy per query
-│   ├── voice/           # Module 4 — Voice AI
-│   │   ├── stt.py         speech-to-text (Deepgram)
-│   │   ├── tts.py         text-to-speech (ElevenLabs)
-│   │   └── pipeline.py    full voice pipeline
-│   ├── agent/           # Module 4 — Autonomous Agent
-│   │   ├── tools.py       tool definitions (calculator, time, web search)
-│   │   ├── memory.py      working + episodic + semantic + persistent memory
-│   │   └── agent.py       agentic loop with tool use
-│   ├── harness/         # Module 4/5 — Evaluation Harness
-│   │   ├── evaluator.py   LLM-as-judge evaluation engine
-│   │   ├── metrics.py     faithfulness, relevance, recall, completeness
-│   │   └── tracer.py      request tracing + prompt version registry
-│   ├── production/      # Module 5 — Production patterns
-│   │   ├── cache.py       semantic caching (30-50% cost reduction)
-│   │   ├── rate_limiter.py  token bucket rate limiting per user/plan
-│   │   ├── resilience.py  retry, fallback, circuit breaker
-│   │   ├── cost_tracker.py  real-time cost tracking and budget alerts
-│   │   └── multi_tenant.py  user-level isolation and data segregation
-│   ├── mcp/             # Module 5 — MCP Protocol
-│   │   └── server.py      MCP request/response dispatcher
-│   └── api/             # REST API routes
-│       ├── health.py      GET /health
-│       ├── rag.py         POST /rag/ingest, POST /rag/query
-│       ├── agent.py       POST /agent/run
-│       └── voice.py       POST /voice/process
-├── tests/               # Unit tests (run with pytest)
-├── .github/workflows/   # CI pipeline (GitHub Actions)
-├── Dockerfile           # Production container
-├── docker-compose.yml   # Local dev with PostgreSQL + pgvector
-├── requirements.txt
-└── .env.example         ← copy this to .env
+app/
+├── main.py              FastAPI entry point, middleware, error handling
+├── config.py            All settings loaded from .env (pydantic-settings)
+├── llm.py               Unified LLM client — swap providers via LLM_PROVIDER
+├── rag/                 Module 3 — RAG pipeline + advanced variants
+├── anti_rag/            Module 3 — When not to use RAG (KAG, CAG, SQL, fine-tuning)
+├── voice/               Module 4 — STT → LLM → TTS pipeline
+├── agent/               Module 4 — Agentic loop with tools and four memory types
+├── harness/             Module 5 — Agent harness: tasks, trajectory capture, scoring
+├── eval/                Module 5 — RAG evaluation: LLM-as-judge, tracer, prompt registry
+├── production/          Module 5 — Cache, rate limiter, resilience, cost, multi-tenancy
+├── mcp/                 Module 5 — Model Context Protocol server
+└── api/                 FastAPI route handlers for each module
 ```
+
+Each module folder has its own **README.md** explaining the concepts and what to implement.
 
 ---
 
 ## Quick Start
 
-### 1. Clone & set up environment
-
 ```bash
 git clone https://github.com/naureenfathima/ai-bootcamp-starter.git
 cd ai-bootcamp-starter
-
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-```
 
-### 2. Configure your API keys
+cp .env.example .env   # fill in your keys
 
-```bash
-cp .env.example .env
-# Open .env and fill in your keys
-```
-
-| Key | Where to get it |
-|-----|----------------|
-| `ANTHROPIC_API_KEY` | https://console.anthropic.com/ |
-| `OPENAI_API_KEY` | https://platform.openai.com/ (optional, for OpenAI embeddings) |
-| `DEEPGRAM_API_KEY` | https://console.deepgram.com/ (for voice AI) |
-| `ELEVENLABS_API_KEY` | https://elevenlabs.io/ (for voice AI) |
-
-> **For development**, set `EMBEDDING_PROVIDER=local` and `VECTOR_STORE=memory` — no paid APIs needed to run the RAG pipeline.
-
-### 3. Run the server
-
-```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
-Open http://localhost:8000/docs to see the interactive API.
+Open **http://localhost:8000/docs** for the interactive API.
+
+**Zero-cost dev mode** — set these in `.env` and no paid API keys are needed:
+```
+EMBEDDING_PROVIDER=local
+VECTOR_STORE=memory
+```
+
+---
+
+## API Keys
+
+| Key | Where to get it | Required for |
+|-----|----------------|-------------|
+| `ANTHROPIC_API_KEY` | https://console.anthropic.com/ | Everything (scoring, eval, agent) |
+| `OPENAI_API_KEY` | https://platform.openai.com/ | OpenAI embeddings or chat (optional) |
+| `DEEPGRAM_API_KEY` | https://console.deepgram.com/ | Voice: speech-to-text |
+| `ELEVENLABS_API_KEY` | https://elevenlabs.io/ | Voice: text-to-speech |
+
+---
+
+## Local LLM with Ollama
+
+Run the agent and RAG pipeline entirely offline — no API costs, no rate limits.
+
+**Install Ollama and pull the default model:**
+```bash
+# macOS
+brew install ollama
+ollama serve &          # starts the server at localhost:11434
+ollama pull qwen2.5:7b  # ~4.7 GB — good balance of speed and quality on M1/M2
+```
+
+**`.env` settings (already configured if you copied `.env.example`):**
+```
+LLM_PROVIDER=ollama
+LLM_MODEL=qwen2.5:7b
+OLLAMA_BASE_URL=http://localhost:11434/v1
+```
+
+**Remote Ollama via SSH tunnel** — if Ollama runs on a server you access over SSH:
+```bash
+# Run this once in a terminal — keeps the tunnel open
+ssh -L 11434:localhost:11434 user@your-server-ip
+
+# Add your public key to the server for passwordless access:
+ssh-copy-id -i ~/.ssh/id_ed25519.pub user@your-server-ip
+```
+Then use `OLLAMA_BASE_URL=http://localhost:11434/v1` as normal — the tunnel forwards the remote port.
+
+**Lighter model for 8 GB RAM:**
+```bash
+ollama pull llama3.2:3b  # ~2 GB, faster iteration
+# then set LLM_MODEL=llama3.2:3b in .env
+```
 
 ---
 
@@ -104,100 +105,49 @@ Open http://localhost:8000/docs to see the interactive API.
 pytest tests/ -v
 ```
 
-Tests run without any API keys — all external services are either unused or stubbed.
+All tests run without real API keys — external services are stubbed.
 
 ---
 
 ## Module Build Guide
 
-Each module adds to this project. Follow this order:
-
 ### Module 2 — AI Systems Foundations
-- Read `app/config.py` and understand how settings are loaded from `.env`
-- Read `app/main.py` and understand the middleware and error handler
-- **Your task:** Add a logging statement that records the token count of every Claude API call
+- Understand `app/config.py` (settings from `.env`) and `app/main.py` (middleware)
+- Read `app/llm.py` — the unified client that lets you swap providers without touching other code
+- **Task:** Add a logging statement that records token counts for every LLM call
 
 ### Module 3 — RAG Systems
-- Read `app/rag/` — start with `ingestion.py`, then `embeddings.py`, then `retrieval.py`, then `pipeline.py`
-- Run the server and test `/rag/ingest` and `/rag/query` via `/docs`
-- **Your task:** Replace `InMemoryVectorStore` with `PgVectorStore` using pgvector
+Read `app/rag/` in this order: `ingestion.py` → `embeddings.py` → `retrieval.py` → `pipeline.py` → `chunking.py` → `metadata.py` → `page_index.py` → `agentic_rag.py` → `corrective_rag.py` → `graph_rag.py`
 
-### Module 3 (extended) — Anti-RAG Approaches
-RAG is not always the right tool. Read `app/anti_rag/` to understand when to use alternatives:
-- `kag.py` — **KAG (Knowledge Augmented Generation)**: entities + relations in a graph instead of vector chunks. Best for multi-hop reasoning ("Who manages what?").
-- `structured_knowledge.py` — **Text-to-SQL**: if your data is in a database, write SQL instead of doing vector search. Always correct for aggregations.
-- `fine_tuning.py` — **Fine-tuning concepts (LoRA/PEFT)**: when to bake knowledge into weights instead of retrieving it at runtime. Includes a training data generator.
-- `router.py` — **Hybrid router**: classifies each query and routes it to the right strategy.
-- **Your task:** Call `/anti-rag/route` with 5 different questions and explain the routing logic.
+Then `app/anti_rag/`: `kag.py` → `cag.py` → `structured_knowledge.py` → `fine_tuning.py` → `router.py`
+
+- **Task:** Replace `InMemoryVectorStore` with `PgVectorStore` using pgvector
 
 ### Module 4 — Voice AI & Agents with Memory
-- Read `app/voice/pipeline.py` and `app/agent/agent.py`
-- Explore `app/agent/memory.py` — understand the four memory types:
-  - `WorkingMemory` — per-task scratchpad
-  - `EpisodicMemory` — conversation history with summarisation
-  - `SemanticMemory` — long-term facts backed by the RAG vector store
-  - `PersistentStore` — cross-session persistence stub (implement with Redis)
-- Add your Deepgram and ElevenLabs keys to `.env` and test `/voice/process`
-- Test the agent at `/agent/run` with: `{"message": "What is sqrt(144) + the current time?"}`
-- **Your task:** Implement `EpisodicMemory._summarise_oldest()` using the Anthropic client.
+- Read `app/voice/pipeline.py` — the STT → LLM → TTS flow and latency budget
+- Read `app/agent/agent.py` and `app/agent/memory.py` — the agentic loop and four memory types
+- Test: `POST /agent/run {"message": "What is sqrt(144) + the current time?"}`
+- **Task:** Implement `EpisodicMemory._summarise_oldest()` (code template in the docstring)
 
-### Module 4/5 — Evaluation Harness
-- Read `app/harness/` — this is how you measure quality before deploying changes
-- Test the evaluator at `/harness/evaluate` with a (question, context, answer) triple
-- Understand the three core metrics: faithfulness, relevance, context_recall
-- Use `/harness/tracer/stats` to see per-request latency and cost breakdowns
-- **Your task:** Build a test suite of 10 golden Q&A pairs and run `/harness/evaluate/batch`.
+### Module 5 — Agent Harness + Evaluation
+- Read `app/harness/` — task runner, trajectory capture, three-dimension scoring
+- Test: `GET /harness/tasks` → `POST /harness/run/task {"task_id": "<id>"}` → `POST /harness/run/suite`
+- Read `app/eval/` — LLM-as-judge for RAG, request tracer, prompt registry
+- Test: `POST /eval/evaluate` with a (question, context, answer) triple
+- **Task:** Write 5 domain-specific tasks in `app/harness/tasks.py` and run the full suite
 
-### Module 5 — MCP & Production Patterns
+### Module 5 — Production Patterns + MCP
+- Read every file in `app/production/` — each covers one production concern
 - Read `app/mcp/server.py` and register your RAG and Agent as MCP methods
-- Explore `app/production/` — every file covers a production concern:
-  - `cache.py` — semantic caching: 30-50% cost reduction with ~5ms cache hits
-  - `rate_limiter.py` — per-user token bucket rate limiting (free/pro/enterprise plans)
-  - `resilience.py` — retry with exponential backoff, circuit breaker, fallback chain
-  - `cost_tracker.py` — real-time cost tracking, budget alerts, optimisation tips
-  - `multi_tenant.py` — user-level isolation using context variables
 - Containerise: `docker build -t ai-bootcamp . && docker run -p 8000:8000 --env-file .env ai-bootcamp`
-- Push to Railway or Render and get a public URL
-- **Your task:** Uncomment the deploy step in `.github/workflows/ci.yml`
+- **Task:** Uncomment the deploy step in `.github/workflows/ci.yml` and get a public URL
 
 ### Module 6 — Capstone
-- Choose your path: **RAG System**, **Voice AI Assistant**, or **Autonomous Agent**
-- Extend this starter into a complete, deployed product
-- Your capstone README must include: system diagram, tech stack, setup guide, public URL
-
----
-
-## Student FAQ
-
-**Do you cover data pipelines (batch/streaming) and queue systems like Kafka/SQS?**
-We don't cover Kafka/SQS specifically, but we do teach event-driven architecture and how to leverage it based on your use case. The production patterns module shows you how to integrate async processing into AI systems.
-
-**Is LLM observability included (evaluation, tracing, prompt/version tracking)?**
-Yes — the `app/harness/` module covers all three: LLM-as-judge evaluation, per-request tracing with cost breakdowns, and the `PromptVersionRegistry` for tracking prompt changes over time.
-
-**Are production patterns like async processing, caching, and rate limiting taught?**
-Yes — `app/production/` covers semantic caching, token bucket rate limiting per plan, retry/circuit breaker/fallback, and cost tracking.
-
-**Do you cover cost optimisation for LLM apps?**
-Yes — `app/production/cost_tracker.py` covers real-time tracking and optimisation strategies (semantic caching, model selection, prompt compression, retrieval tuning). We go through the strategy in depth even if not every technique is implemented end-to-end.
-
-**Is fine-tuning (LoRA/PEFT) and dataset prep included?**
-We cover fine-tuning conceptually within the Anti-RAG module. `app/anti_rag/fine_tuning.py` includes the LoRA/PEFT decision framework, a training data builder (generate datasets with Claude), and the `when-to-fine-tune-vs-RAG` decision logic. Hands-on LoRA training is not in scope, but the concepts and dataset preparation are fully covered.
-
-**Do you teach multi-tenant AI architecture and user-level isolation?**
-Yes — `app/production/multi_tenant.py` covers row-level isolation with context variables, tenant-scoped vector stores, and a FastAPI middleware for extracting tenant identity from request headers.
-
-**Are reliability patterns like retries, fallbacks, and circuit breakers covered?**
-Yes — `app/production/resilience.py` implements all three as reusable Python primitives you can wrap around any external API call.
-
-**Do you go beyond Docker into cloud architecture (AWS/GCP, scaling, queues)?**
-We don't cover cloud-specific services. Instead we teach the general architectural patterns (event-driven design, horizontal scaling, queue-based decoupling) and show you how to map these to whatever cloud services your team uses. Students don't need cloud access — the course proposes system architecture best practices and guides you through applying them to your own infrastructure.
+Choose: **RAG System**, **Voice AI Assistant**, or **Autonomous Agent**. Extend this starter into a deployed product. Your capstone README must include: system diagram, tech stack, setup guide, public URL.
 
 ---
 
 ## API Reference
-
-Once running, visit **http://localhost:8000/docs** for the full interactive API documentation.
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
@@ -205,102 +155,52 @@ Once running, visit **http://localhost:8000/docs** for the full interactive API 
 | `/rag/ingest` | POST | Add text to the knowledge base |
 | `/rag/ingest/file` | POST | Upload a .txt file |
 | `/rag/query` | POST | Ask a question against the knowledge base |
-| `/rag/status` | GET | How many chunks are indexed |
+| `/rag/status` | GET | Number of chunks indexed |
+| `/rag/agentic/query` | POST | Agentic RAG — iterative retrieve/reflect loop |
+| `/rag/corrective/query` | POST | Corrective RAG — grade docs, web fallback |
+| `/rag/graph/build` | POST | Build GraphRAG entity graph from text |
+| `/rag/graph/query` | POST | Query via GraphRAG (local or global) |
+| `/rag/page-index/build` | POST | Build hierarchical page index |
+| `/rag/page-index/query` | POST | Two-tier page → chunk retrieval |
 | `/agent/run` | POST | Run the agent on a message |
 | `/agent/reset` | POST | Clear agent memory |
 | `/agent/tools` | GET | List available tools |
 | `/voice/transcribe` | POST | Speech-to-text only |
 | `/voice/process` | POST | Full voice pipeline (audio in, audio out) |
 | `/voice/reset` | POST | Clear conversation history |
-| `/anti-rag/kag/extract` | POST | Extract entities/relations into knowledge graph |
-| `/anti-rag/kag/query` | POST | Query via graph traversal (KAG) |
-| `/anti-rag/kag/stats` | GET | Knowledge graph statistics |
+| `/anti-rag/demo/seed` | POST | Seed demo org-chart into KAG + CAG |
+| `/anti-rag/kag/query` | POST | Graph traversal query (KAG) |
+| `/anti-rag/cag/query` | POST | Full context window query (CAG) |
+| `/anti-rag/compare` | POST | Side-by-side KAG vs CAG |
 | `/anti-rag/sql/query` | POST | Text-to-SQL query |
-| `/anti-rag/sql/schema` | PUT | Update the database schema |
 | `/anti-rag/route` | POST | Show which strategy the router picks |
-| `/anti-rag/fine-tuning/generate-data` | POST | Generate synthetic training data |
 | `/anti-rag/fine-tuning/guide` | GET | Fine-tuning vs RAG decision framework |
-| `/anti-rag/fine-tuning/lora-config` | POST | Recommended LoRA config for model+task |
-| `/harness/evaluate` | POST | Evaluate a response (LLM-as-judge) |
-| `/harness/evaluate/batch` | POST | Batch evaluation + regression report |
-| `/harness/tracer/stats` | GET | Latency, token, cost statistics |
-| `/harness/tracer/recent` | GET | Recent request traces |
-| `/harness/prompts/register` | POST | Register a prompt version |
-| `/harness/prompts/{name}` | GET | Get active prompt version |
-
----
-
-## Architecture
-
-```
-User Request
-     │
-     ▼
-┌─────────────┐
-│  FastAPI    │  ← app/main.py (routing, middleware, error handling)
-└─────┬───────┘
-      │
-   ┌──┴──────────────────────────────────┐
-   │                                     │
-   ▼                                     ▼
-┌──────────┐                     ┌───────────────┐
-│  RAG     │                     │    Agent      │
-│ Pipeline │                     │  (tool loop)  │
-└──┬───────┘                     └───────┬───────┘
-   │                                     │
-   ▼                                     ▼
-┌──────────┐   ┌───────────┐   ┌─────────────────┐
-│ Vector   │   │ Embedding │   │  Tools          │
-│ Store    │   │ Model     │   │  (calc/search)  │
-└──────────┘   └───────────┘   └─────────────────┘
-                     │
-                     ▼
-              ┌─────────────┐
-              │  Claude API │
-              │ (Anthropic) │
-              └─────────────┘
-```
-
----
-
-## Deployment
-
-### Option 1: Railway (recommended for beginners)
-1. Push this repo to GitHub
-2. Go to https://railway.app → New Project → Deploy from GitHub
-3. Set your environment variables in the Railway dashboard
-4. Railway auto-deploys on every push to main ✅
-
-### Option 2: Render
-1. Go to https://render.com → New Web Service → Connect GitHub
-2. Set Build Command: `pip install -r requirements.txt`
-3. Set Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-4. Add environment variables and deploy ✅
-
-### Option 3: Docker
-```bash
-docker build -t ai-bootcamp .
-docker run -p 8000:8000 --env-file .env ai-bootcamp
-```
+| `/harness/tasks` | GET | List tasks in the default agent test suite |
+| `/harness/run/task` | POST | Run one task by ID — full trajectory + score breakdown |
+| `/harness/run/suite` | POST | Run all tasks — returns GREEN / YELLOW / RED report |
+| `/harness/run/custom` | POST | Define and run a one-off task inline |
+| `/eval/evaluate` | POST | Evaluate a RAG response (LLM-as-judge) |
+| `/eval/evaluate/batch` | POST | Batch RAG evaluation + regression report |
+| `/eval/tracer/stats` | GET | Latency, token, cost statistics |
+| `/eval/prompts/register` | POST | Register a prompt version |
 
 ---
 
 ## Common Issues
 
-**`ANTHROPIC_API_KEY` not found** — Make sure you copied `.env.example` to `.env` and filled in your key.
-
-**`ImportError: No module named 'sentence_transformers'`** — Run `pip install sentence-transformers` or switch to `EMBEDDING_PROVIDER=openai` in `.env`.
-
-**`No results above similarity threshold`** — Try lowering `SIMILARITY_THRESHOLD` in `.env` (e.g. to `0.5`) or add more documents to the knowledge base.
-
-**Voice pipeline returns 500** — Check that `DEEPGRAM_API_KEY` and `ELEVENLABS_API_KEY` are set in `.env`.
-
----
-
-## Contributing
-
-Found a bug or want to improve the starter code? Open an issue or PR on GitHub.
+| Error | Fix |
+|-------|-----|
+| `ANTHROPIC_API_KEY not found` | Copy `.env.example` to `.env` and fill in your key |
+| `No module named 'sentence_transformers'` | `pip install sentence-transformers` or set `EMBEDDING_PROVIDER=openai` |
+| `No results above similarity threshold` | Lower `SIMILARITY_THRESHOLD` in `.env` to `0.5` |
+| Voice pipeline 500 error | Check `DEEPGRAM_API_KEY` and `ELEVENLABS_API_KEY` in `.env` |
 
 ---
 
-*Built with ❤️ for the BlockseBlock AI Engineering Bootcamp*
+## Deployment
+
+**Railway (recommended):** Push to GitHub → railway.app → New Project → Deploy from GitHub → set env vars → auto-deploys on push.
+
+**Render:** New Web Service → Build: `pip install -r requirements.txt` → Start: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+
+**Docker:** `docker build -t ai-bootcamp . && docker run -p 8000:8000 --env-file .env ai-bootcamp`

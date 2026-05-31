@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Optional
 """
 pipeline.py — End-to-end RAG pipeline (Stages 1-8).
 
@@ -14,9 +16,8 @@ STUDENT TODO:
 import logging
 import time
 
-import anthropic
-
 from app.config import settings
+from app.llm import get_llm_client
 from app.rag.ingestion import Chunk, chunk_text, ingest_directory
 from app.rag.embeddings import embed_chunks, get_embedding_provider
 from app.rag.retrieval import InMemoryVectorStore, SearchResult, get_vector_store
@@ -28,6 +29,9 @@ class RAGPipeline:
     """
     A complete Retrieval-Augmented Generation pipeline.
 
+    The LLM provider is controlled by LLM_PROVIDER in .env — swap between
+    Anthropic, Ollama, Groq, Together AI, or OpenAI without changing any code.
+
     Usage:
         pipeline = RAGPipeline()
         pipeline.ingest_text("My document content here", source="doc1.txt")
@@ -36,10 +40,11 @@ class RAGPipeline:
     """
 
     def __init__(self):
-        self._client       = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        self._llm          = get_llm_client()
         self._vector_store = get_vector_store()
         self._embed        = get_embedding_provider()
-        logger.info("RAGPipeline initialised (vector_store=%s)", settings.vector_store)
+        logger.info("RAGPipeline initialised (vector_store=%s, llm_provider=%s)",
+                    settings.vector_store, settings.llm_provider)
 
     # ── Ingestion ─────────────────────────────────────────────────────────────
     def ingest_text(self, text: str, source: str = "unknown") -> int:
@@ -64,7 +69,7 @@ class RAGPipeline:
         return len(chunks)
 
     # ── Retrieval ─────────────────────────────────────────────────────────────
-    def retrieve(self, query: str, top_k: int | None = None) -> list[SearchResult]:
+    def retrieve(self, query: str, top_k:Optional[ int] = None) -> list[SearchResult]:
         """
         Embed a query and retrieve the most relevant chunks.
 
@@ -99,7 +104,7 @@ class RAGPipeline:
         return "\n".join(lines)
 
     # ── Generation ────────────────────────────────────────────────────────────
-    def query(self, question: str, top_k: int | None = None) -> "RAGResponse":
+    def query(self, question: str, top_k:Optional[ int] = None) -> "RAGResponse":
         """
         Run the full RAG pipeline for a user question.
 
@@ -127,29 +132,23 @@ class RAGPipeline:
             f"CONTEXT:\n{context}"
         )
 
-        message = self._client.messages.create(
-            model=settings.claude_model,
-            max_tokens=1024,
-            system=system_prompt,
-            messages=[{"role": "user", "content": question}],
-        )
+        llm_response   = self._llm.chat(question, system=system_prompt, max_tokens=1024)
         llm_latency_ms = round((time.perf_counter() - t_llm) * 1000, 1)
-
-        response_text  = message.content[0].text
         total_ms       = round((time.perf_counter() - t_total) * 1000, 1)
 
-        logger.info("RAG query complete | total=%sms | llm=%sms | tokens_used=%d",
-                    total_ms, llm_latency_ms, message.usage.input_tokens + message.usage.output_tokens)
+        logger.info("RAG query complete | total=%sms | llm=%sms | tokens=%d",
+                    total_ms, llm_latency_ms,
+                    llm_response.input_tokens + llm_response.output_tokens)
 
         return RAGResponse(
-            response=response_text,
+            response=llm_response.text,
             sources=[r.chunk.source for r in results],
             scores=[r.score for r in results],
             context_chunks=[r.chunk.text for r in results],
             llm_latency_ms=llm_latency_ms,
             total_latency_ms=total_ms,
-            input_tokens=message.usage.input_tokens,
-            output_tokens=message.usage.output_tokens,
+            input_tokens=llm_response.input_tokens,
+            output_tokens=llm_response.output_tokens,
         )
 
 

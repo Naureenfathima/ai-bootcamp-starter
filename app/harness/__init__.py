@@ -1,38 +1,35 @@
 """
-harness/ — Evaluation harness for LLM-powered systems.
+harness/ — Agent harness: run, observe, and score autonomous agents.
 
-"You can't improve what you don't measure."
-
-This module provides structured evaluation tooling for RAG pipelines,
-agents, and general LLM outputs — the foundation of responsible AI engineering.
+An agent harness is the infrastructure for testing agents against defined tasks.
+It is NOT an evaluation module (that lives in app/eval/) — it is the scaffolding
+that wraps agent execution, captures trajectories, and scores task completion.
 
 Components:
-  evaluator.py   — LLM-as-judge: score responses on faithfulness, relevance, etc.
-  metrics.py     — Metric definitions and scoring rubrics
-  tracer.py      — Request tracing and observability
+  tasks.py     Task and TaskSuite definitions — what the agent should accomplish
+  executor.py  Runs the agent, captures the full trajectory (every tool call)
+  scorer.py    Scores task outcomes: did the agent complete the goal?
+  runner.py    Batch runner — runs a TaskSuite and produces a HarnessReport
 
-Why harness engineering matters:
-  Without evaluation, you are flying blind. Small prompt changes can
-  silently degrade performance. The harness lets you:
-    - Measure quality before and after changes
-    - Catch regressions in CI
-    - Build confidence that your system works
-
-STUDENT TODO:
-  - Write a test suite for your RAG pipeline using the evaluator.
-  - Add harness checks to the GitHub Actions CI workflow.
-  - Integrate with LangSmith or Langfuse for a production dashboard.
+Flow:
+  TaskSuite → HarnessRunner → AgentExecutor → TrajectoryCapturingAgent
+                           → TaskScorer (outcome + tool_use + efficiency)
+                           → HarnessReport (pass_rate, status, per-task breakdown)
 """
 
-from app.harness.evaluator import LLMEvaluator, EvaluationResult
-from app.harness.metrics import RAGMetrics, MetricScore
-from app.harness.tracer import RequestTracer, Span
+from app.harness.tasks import Task, TaskSuite, TaskResult, default_suite
+from app.harness.executor import AgentExecutor
+from app.harness.scorer import TaskScorer, TaskScore
+from app.harness.runner import HarnessRunner, HarnessReport
 
 __all__ = [
-    "LLMEvaluator",
-    "EvaluationResult",
-    "RAGMetrics",
-    "MetricScore",
-    "RequestTracer",
-    "Span",
+    "Task",
+    "TaskSuite",
+    "TaskResult",
+    "default_suite",
+    "AgentExecutor",
+    "TaskScorer",
+    "TaskScore",
+    "HarnessRunner",
+    "HarnessReport",
 ]

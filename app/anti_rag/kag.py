@@ -30,6 +30,8 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 import anthropic
+import openai
+from openai import OpenAI
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -173,15 +175,15 @@ class KAGPipeline:
 You are a knowledge graph builder. Extract entities and relationships from the text.
 
 Return JSON in this exact format:
-{
+{{
   "entities": [
-    {"id": "alice", "label": "Person", "properties": {"name": "Alice", "role": "Manager"}},
-    {"id": "platform_team", "label": "Team", "properties": {"name": "Platform Team"}}
+    {{"id": "alice", "label": "Person", "properties": {{"name": "Alice", "role": "Manager"}}}},
+    {{"id": "platform_team", "label": "Team", "properties": {{"name": "Platform Team"}}}}
   ],
   "relations": [
-    {"source_id": "alice", "target_id": "platform_team", "relation_type": "MANAGES"}
+    {{"source_id": "alice", "target_id": "platform_team", "relation_type": "MANAGES"}}
   ]
-}
+}}
 
 Rules:
 - IDs must be lowercase_snake_case, no spaces
@@ -194,9 +196,15 @@ Text to extract from:
 """
 
     def __init__(self):
-        self._client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        # Prefer OpenAI if a key is present; fall back to Anthropic (Claude).
+        # The else branch was previously None, causing AttributeError at query time.
+        if settings.openai_api_key:
+            self._client = OpenAI(api_key=settings.openai_api_key)
+        else:
+            self._client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
         self._graph  = InMemoryKnowledgeGraph()
-        logger.info("KAGPipeline initialised")
+        logger.info("KAGPipeline initialised (provider=%s)",
+                    "openai" if isinstance(self._client, OpenAI) else "anthropic")
 
     # ── Phase 1: Build ────────────────────────────────────────────────────────
     def extract_and_store(self, text: str) -> dict:
@@ -209,16 +217,23 @@ Text to extract from:
         """
         logger.info("KAG: extracting entities from %d chars", len(text))
 
-        response = self._client.messages.create(
-            model=settings.claude_model,
-            max_tokens=2048,
-            messages=[{
-                "role": "user",
-                "content": self.ENTITY_EXTRACTION_PROMPT.format(text=text)
-            }]
-        )
-
-        raw = response.content[0].text.strip()
+        if isinstance(self._client, OpenAI):
+            response = self._client.chat.completions.create(
+                model=settings.openai_chat_model,
+                max_tokens=2048,
+                messages=[{"role": "user", "content": self.ENTITY_EXTRACTION_PROMPT.format(text=text)}]
+            )
+            raw = response.choices[0].message.content.strip()
+        else:
+            response = self._client.messages.create(
+                model=settings.claude_model,
+                max_tokens=2048,
+                messages=[{
+                    "role": "user",
+                    "content": self.ENTITY_EXTRACTION_PROMPT.format(text=text)
+                }]
+            )
+            raw = response.content[0].text.strip()
 
         # Strip markdown code fences if present
         if raw.startswith("```"):
@@ -323,25 +338,33 @@ Text to extract from:
         )
         user_prompt = f"Knowledge Graph Context:\n{context}\n\nQuestion: {question}"
 
-        response = self._client.messages.create(
-            model=settings.claude_model,
-            max_tokens=512,
-            system=system_prompt,
-            messages=[{"role": "user", "content": user_prompt}]
-        )
-
-        answer = response.content[0].text
+        if isinstance(self._client, OpenAI):
+            response = self._client.chat.completions.create(
+                model=settings.openai_chat_model,
+                max_tokens=512,
+                messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}]
+            )
+            answer = response.choices[0].message.content
+            input_tokens = response.usage.prompt_tokens
+            output_tokens = response.usage.completion_tokens
+        else:
+            response = self._client.messages.create(
+                model=settings.claude_model,
+                max_tokens=512,
+                system=system_prompt,
+                messages=[{"role": "user", "content": user_prompt}]
+            )
+            answer = response.content[0].text
+            input_tokens = response.usage.input_tokens
+            output_tokens = response.usage.output_tokens
         reasoning_path.append("Generated answer from graph context")
-
-        logger.info("KAG: answered question with %d entities, %d hops",
-                    len(all_entity_ids), max_hops)
-
+        logger.info("KAG: answered question with %d entities, %d hops", len(all_entity_ids), max_hops)
         return KAGResult(
             answer=answer,
             entities_used=all_entity_ids,
             reasoning_path=reasoning_path,
-            input_tokens=response.usage.input_tokens,
-            output_tokens=response.usage.output_tokens,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
         )
 
     def seed_demo_graph(self) -> dict:

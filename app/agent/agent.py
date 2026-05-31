@@ -1,11 +1,13 @@
+from __future__ import annotations
+from typing import Optional
 """
 agent.py — Autonomous agent with tool use and memory.
 
 The agent follows an agentic loop:
   1. Receive user message
-  2. Call Claude with tools
-  3. If Claude calls a tool → execute it → feed result back
-  4. Repeat until Claude gives a final text response
+  2. Call the LLM with tools (provider set by LLM_PROVIDER in .env)
+  3. If the LLM calls a tool → execute it → feed result back
+  4. Repeat until the LLM gives a final text response
 
 STUDENT TODO:
   - Add multi-agent support: spawn sub-agents for parallel sub-tasks.
@@ -14,13 +16,13 @@ STUDENT TODO:
   - Implement a step budget: warn the user if the agent is taking many steps.
 """
 
+import json
 import logging
 import time
 from dataclasses import dataclass, field
 
-import anthropic
-
 from app.config import settings
+from app.llm import get_llm_client
 from app.agent.tools import Tool, DEFAULT_TOOLS
 from app.agent.memory import EpisodicMemory, WorkingMemory
 
@@ -52,10 +54,10 @@ class Agent:
 
     def __init__(
         self,
-        tools: list[Tool] | None = None,
-        system_prompt: str | None = None,
+        tools: Optional[list[Tool]] = None,
+        system_prompt: Optional[str] = None,
     ):
-        self._client  = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        self._llm     = get_llm_client()
         self._tools   = tools or DEFAULT_TOOLS
         self._memory  = EpisodicMemory()
         self._working = WorkingMemory()
@@ -67,8 +69,8 @@ class Agent:
             "Be concise and direct in your final responses."
         )
 
-        # Build tool schemas for Claude
-        self._tool_schemas = [t.as_claude_tool() for t in self._tools]
+        # Tool schemas in OpenAI function-calling format (universal)
+        self._tool_schemas = [t.as_openai_tool() for t in self._tools]
         self._tool_map     = {t.name: t for t in self._tools}
 
         logger.info("Agent initialised with %d tools: %s",
@@ -96,31 +98,25 @@ class Agent:
         total_input_tokens  = 0
         total_output_tokens = 0
 
-        messages = self._memory.as_claude_messages()
+        # Messages in OpenAI format — provider-agnostic throughout the loop
+        messages = self._memory.as_messages()
 
         while steps_taken < settings.max_agent_steps:
             steps_taken += 1
             logger.info("Agent step %d/%d", steps_taken, settings.max_agent_steps)
 
-            # ── Call Claude ────────────────────────────────────────────────────
-            response = self._client.messages.create(
-                model=settings.claude_model,
-                max_tokens=1024,
-                system=self._system,
-                tools=self._tool_schemas,
+            turn = self._llm.chat_with_tools(
                 messages=messages,
+                tools=self._tool_schemas,
+                system=self._system,
+                max_tokens=1024,
             )
 
-            total_input_tokens  += response.usage.input_tokens
-            total_output_tokens += response.usage.output_tokens
+            total_input_tokens  += turn.input_tokens
+            total_output_tokens += turn.output_tokens
 
-            # ── Check stop reason ──────────────────────────────────────────────
-            if response.stop_reason == "end_turn":
-                # Claude is done — extract the final text response
-                final_text = next(
-                    (block.text for block in response.content if hasattr(block, "text")),
-                    "I completed the task but could not generate a text response."
-                )
+            if turn.stop_reason == "end_turn":
+                final_text = turn.text or "I completed the task but could not generate a text response."
                 self._memory.add("assistant", final_text)
 
                 total_ms = round((time.perf_counter() - t_total) * 1000, 1)
@@ -139,48 +135,50 @@ class Agent:
                     output_tokens=total_output_tokens,
                 )
 
-            elif response.stop_reason == "tool_use":
-                # Claude wants to call one or more tools
-                tool_results = []
+            elif turn.stop_reason == "tool_calls":
+                # Append the assistant's tool-call message (OpenAI format)
+                messages = messages + [{
+                    "role": "assistant",
+                    "content": turn.text,
+                    "tool_calls": [
+                        {
+                            "id": tc.id,
+                            "type": "function",
+                            "function": {
+                                "name": tc.name,
+                                "arguments": json.dumps(tc.arguments),
+                            },
+                        }
+                        for tc in turn.tool_calls
+                    ],
+                }]
 
-                for block in response.content:
-                    if block.type != "tool_use":
-                        continue
+                # Execute each tool and append results
+                for tc in turn.tool_calls:
+                    tools_called.append(tc.name)
+                    logger.info("Tool call: %s(%s)", tc.name, tc.arguments)
 
-                    tool_name = block.name
-                    tool_input = block.input
-                    tools_called.append(tool_name)
-
-                    logger.info("Tool call: %s(%s)", tool_name, tool_input)
-
-                    # Find and execute the tool
-                    tool = self._tool_map.get(tool_name)
+                    tool = self._tool_map.get(tc.name)
                     if tool is None:
-                        tool_output = f"Error: tool '{tool_name}' not found."
-                        logger.error("Unknown tool: %s", tool_name)
+                        tool_output = f"Error: tool '{tc.name}' not found."
+                        logger.error("Unknown tool: %s", tc.name)
                     else:
                         try:
-                            tool_output = tool.execute(**tool_input)
+                            tool_output = tool.execute(**tc.arguments)
                         except Exception as exc:
-                            tool_output = f"Error executing {tool_name}: {exc}"
-                            logger.exception("Tool execution failed: %s", tool_name)
+                            tool_output = f"Error executing {tc.name}: {exc}"
+                            logger.exception("Tool execution failed: %s", tc.name)
 
-                    logger.info("Tool result: %s → %r", tool_name, tool_output[:200])
+                    logger.info("Tool result: %s → %r", tc.name, str(tool_output)[:200])
 
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": block.id,
+                    messages = messages + [{
+                        "role": "tool",
+                        "tool_call_id": tc.id,
                         "content": str(tool_output),
-                    })
-
-                # Feed tool results back to Claude
-                messages = messages + [
-                    {"role": "assistant", "content": response.content},
-                    {"role": "user",      "content": tool_results},
-                ]
+                    }]
 
             else:
-                logger.warning("Unexpected stop_reason: %s", response.stop_reason)
+                logger.warning("Unexpected stop_reason: %s", turn.stop_reason)
                 break
 
         # Safety: max steps reached

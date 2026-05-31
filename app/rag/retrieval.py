@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Optional
 """
 retrieval.py — Vector storage and similarity search (RAG Stages 3 & 4).
 
@@ -60,8 +62,8 @@ class InMemoryVectorStore:
     def search(
         self,
         query_embedding: list[float],
-        top_k: int | None = None,
-        threshold: float | None = None,
+        top_k:Optional[ int] = None,
+        threshold:Optional[ float] = None,
     ) -> list[SearchResult]:
         """
         Find the top_k most similar chunks to query_embedding.
@@ -137,8 +139,8 @@ class PgVectorStore:
     def search(
         self,
         query_embedding: list[float],
-        top_k: int | None = None,
-        threshold: float | None = None,
+        top_k:Optional[ int] = None,
+        threshold:Optional[ float] = None,
     ) -> list[SearchResult]:
         # STUDENT TODO:
         # SELECT content, source, 1 - (embedding <=> %s) AS score

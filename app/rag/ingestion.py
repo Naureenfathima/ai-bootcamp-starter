@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Optional
 """
 ingestion.py — Document loading and chunking (RAG Stage 1).
 
@@ -37,8 +39,8 @@ def load_text_file(path: str | Path) -> str:
 def chunk_text(
     text: str,
     source: str,
-    chunk_size: int | None = None,
-    chunk_overlap: int | None = None,
+    chunk_size:Optional[ int] = None,
+    chunk_overlap:Optional[ int] = None,
 ) -> list[Chunk]:
     """
     Split text into overlapping chunks by word count.

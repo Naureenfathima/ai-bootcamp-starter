@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 production/multi_tenant.py — Multi-tenant AI architecture and user-level isolation.
 
@@ -236,7 +237,7 @@ class TenantScopedVectorStore:
         results.sort(key=lambda r: r.score, reverse=True)
         return results[:top_k]
 
-    def count(self, tenant_id: str | None = None) -> int:
+    def count(self, tenant_id:Optional[ str] = None) -> int:
         if tenant_id:
             return len(self._get_store(tenant_id))
         return sum(len(s) for s in self._stores.values())
